@@ -1,12 +1,17 @@
 # Voice-Based Minutes of Meeting Pipeline
 
-This project provides a robust, open-source pipeline to generate structured Minutes of Meeting from audio/video recordings. It handles multilingual conversations (English, Hindi, Odia), speaker diarization (identifying who spoke when), and generates a concise summary with key points and action items.
+## Objective & Problem Statement
+This project provides a robust, open-source pipeline to generate structured Minutes of Meeting (MoM) from audio/video recordings. It analyzes recorded meetings and generates a structured transcript with speaker identification, timestamps, speaker-wise conversation statistics, and a final meeting summary. 
 
-## Core Technologies Used
-* **Speech-to-Text (Transcription):** `whisper` (OpenAI's open-source model). Chosen for its excellent multilingual support (including Odia and Hindi) and code-switching capabilities without relying on external paid APIs.
-* **Speaker Diarization:** `pyannote.audio`. Chosen as the state-of-the-art open-source diarization model for identifying distinct speakers and generating timestamps.
-* **Summarization (NLP):** `transformers` (`facebook/bart-large-cnn`). Used to generate the meeting summary entirely locally.
-* **Backend API:** `FastAPI`. Used for asynchronous processing and easy API interaction.
+It handles multilingual conversations, including English, Hindi, and Odia, as well as code-switching between these languages.
+
+## Architecture & Technology Choices
+The core pipeline avoids using any paid or external LLM APIs (like OpenAI API, Gemini, etc.), relying completely on powerful open-source models:
+
+* **Speech-to-Text (Transcription & Multilingual):** `whisper` (OpenAI's open-source model running locally). The `medium` model was chosen for its excellent multilingual support (including Odia and Hindi) and code-switching capabilities.
+* **Speaker Diarization:** `pyannote.audio`. Chosen as the state-of-the-art open-source diarization model for distinguishing distinct speakers and generating accurate chronological timestamps.
+* **Summarization (NLP):** `transformers` (`facebook/bart-large-cnn`). Used to generate the meeting summary, key points, and action items entirely locally.
+* **Backend API:** `FastAPI`. Used for handling asynchronous processing and providing a simple upload/retrieval interface.
 
 ## Prerequisites
 1. Python 3.8+ installed.
@@ -24,10 +29,10 @@ This project provides a robust, open-source pipeline to generate structured Minu
    * Go to [pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1) and [pyannote/segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0) on Hugging Face and accept the user conditions.
    * Create an Access Token in your Hugging Face settings.
    * Set it as an environment variable in your terminal:
-     * **Windows:** `set HF_TOKEN=your_huggingface_token`
+     * **Windows PowerShell:** `$env:HF_TOKEN="your_huggingface_token"`
      * **Linux/Mac:** `export HF_TOKEN=your_huggingface_token`
 
-## Running the Pipeline
+## Execution Instructions
 
 1. **Start the API Server:**
    ```bash
@@ -52,13 +57,16 @@ This project provides a robust, open-source pipeline to generate structured Minu
    * Use the `task_id` returned from the upload to check the status/results.
    * Go to `http://localhost:8000/results/{task_id}`
 
-## Output Structure
-The result JSON contains:
-* `language`: The primary language detected by Whisper.
-* `segments`: The full transcript, broken down chronologically with `start` time, `end` time, `speaker` ID, and the spoken `text`.
-* `statistics`: Total speaking time and percentage per speaker.
-* `summary`: A concise NLP-generated summary of the meeting.
+*(Alternatively, run `python test_run.py` to directly test the pipeline on a local audio file and output to `test_result.json`)*.
 
-## Known Limitations
-* Processing is extremely CPU-intensive. On standard hardware without a dedicated GPU, processing a 5-minute audio file can take 15+ minutes.
-* Whisper's Odia support (`or`) is functional but may have higher Word Error Rates (WER) compared to English or Hindi due to smaller training datasets in the base/small models. Use the `large-v3` model by modifying `processing.py` if greater Odia accuracy is required and VRAM permits.
+## Deliverables & Output Structure
+The result JSON (e.g., `test_result.json`) successfully delivers all required data points:
+* **Language Detection:** `language` key showing the primary language detected by Whisper.
+* **Structured Transcript & Speaker Diarization:** `segments` key breaking down the full transcript chronologically with `start` time, `end` time, `speaker` ID (e.g., SPEAKER_00), and the spoken `text`.
+* **Speaker-wise Conversation Statistics:** `statistics` key calculating the total speaking time in seconds and the overall proportion/percentage of time per speaker.
+* **Meeting Summary:** `summary` key containing a concise NLP-generated summary of the meeting highlighting the main discussion points.
+
+## Test Results and Known Limitations
+* **CPU Intensive Processing:** Processing is heavily CPU-intensive. On standard hardware without a dedicated GPU, processing a 5-minute audio file using the Whisper `medium` model can take significant time.
+* **Odia (or) Accuracy:** Whisper's Odia support is functional, but due to smaller training datasets compared to English or Hindi, Word Error Rates (WER) may be slightly higher on heavily accented or overlapping Odia speech.
+* **Overlapping Speech:** Pyannote can handle slight interruptions, but heavy overlapping speech may occasionally combine segments. 
